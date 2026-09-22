@@ -2,15 +2,26 @@ import streamlit as st
 import pandas as pd
 import joblib
 
-# Load model and feature columns
-model = joblib.load("land_acq_final.pkl")
-model_columns = joblib.load("columns.pkl")
+# -----------------------------
+# Page configuration
+# -----------------------------
 
 st.set_page_config(
     page_title="LandSetu",
     page_icon="🏠",
     layout="centered"
 )
+
+# -----------------------------
+# Load model and columns
+# -----------------------------
+
+model = joblib.load("land_acq_final.pkl")
+model_columns = joblib.load("columns.pkl")
+
+# -----------------------------
+# Title
+# -----------------------------
 
 st.title("🏠 LandSetu")
 st.subheader("Land Compensation Estimation")
@@ -26,37 +37,43 @@ st.write(
 land_area = st.number_input(
     "Land Area (sq m)",
     min_value=0.0,
-    value=1000.0
+    value=1000.0,
+    step=100.0
 )
 
 guideline_rate = st.number_input(
     "Guideline Rate per sq m",
     min_value=0.0,
-    value=1000.0
+    value=1000.0,
+    step=100.0
 )
 
 distance_highway = st.number_input(
     "Distance from Highway (km)",
     min_value=0.0,
-    value=5.0
+    value=5.0,
+    step=0.5
 )
 
 distance_main_road = st.number_input(
     "Distance from Main Road (km)",
     min_value=0.0,
-    value=2.0
+    value=2.0,
+    step=0.5
 )
 
 distance_city = st.number_input(
     "Distance from City (km)",
     min_value=0.0,
-    value=5.0
+    value=5.0,
+    step=0.5
 )
 
 existing_structure = st.number_input(
     "Existing Structure Value",
     min_value=0.0,
-    value=0.0
+    value=0.0,
+    step=10000.0
 )
 
 # -----------------------------
@@ -107,7 +124,7 @@ acquisition_purpose = st.selectbox(
 
 if st.button("💰 Estimate Compensation"):
 
-    # Create input dataframe
+    # Create raw input dataframe
     input_data = pd.DataFrame({
         "land_area_sqm": [land_area],
         "land_type": [land_type],
@@ -122,29 +139,54 @@ if st.button("💰 Estimate Compensation"):
         "acquisition_purpose": [acquisition_purpose]
     })
 
-    # One-Hot Encoding
+    # -----------------------------
+    # One-hot encoding
+    # -----------------------------
+
+    categorical_columns = [
+        "land_type",
+        "land_use",
+        "locality_type",
+        "district",
+        "acquisition_purpose"
+    ]
+
     input_data = pd.get_dummies(
         input_data,
-        columns=[
-            "land_type",
-            "land_use",
-            "locality_type",
-            "district",
-            "acquisition_purpose"
-        ]
+        columns=categorical_columns
     )
 
-    # Make columns exactly the same as training data
+    # -----------------------------
+    # Match training columns
+    # -----------------------------
+
     input_data = input_data.reindex(
         columns=model_columns,
         fill_value=0
     )
 
+    # Make sure all model inputs are numeric
+    input_data = input_data.astype(float)
+
+    # -----------------------------
     # Prediction
+    # -----------------------------
+
     prediction = model.predict(input_data)
 
-    compensation = prediction[0]
+    compensation = float(prediction[0])
+
+    # -----------------------------
+    # Display result
+    # -----------------------------
 
     st.success(
         f"Estimated Compensation: ₹{compensation:,.2f}"
     )
+
+    # -----------------------------
+    # Optional verification
+    # -----------------------------
+
+    with st.expander("View model input"):
+        st.dataframe(input_data)
