@@ -3,7 +3,7 @@ import pandas as pd
 import joblib
 
 # Load model and feature columns
-model = joblib.load("land_acq1.pkl")
+model = joblib.load("land_acq_final.pkl")
 model_columns = joblib.load("columns.pkl")
 
 st.set_page_config(
